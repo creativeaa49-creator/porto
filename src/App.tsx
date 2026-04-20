@@ -335,7 +335,7 @@ export default function App() {
             </div>
             <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-display font-bold leading-[0.95] md:leading-[0.9] text-white tracking-tight">
               Behind Every Great <br />
-              Film is a Visionary.
+              Film is a Cinematography.
             </h1>
             <p className="text-white/60 text-sm md:text-base lg:text-lg max-w-xl leading-relaxed font-medium">
               {liveProfile.bio || 'Crafting unforgettable stories bringing their creative vision to life on the big screen - the movie maker director.'}
