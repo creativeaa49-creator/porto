@@ -236,10 +236,10 @@ export default function App() {
         </div>
 
         <div className="flex flex-col items-end gap-1 w-1/3 text-[11px] font-bold uppercase tracking-widest text-white/90">
-          <div className="flex items-center gap-2">
+          <a href="https://wa.me/6285718597608?text=Halo%20Cinenyo%2C%20saya%20ingin%20bertanya%20seputar%20layanan%20produksi%20visual." target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-accent transition-colors">
             <Phone size={14} className="text-accent" />
             <span>+62 857 1859 7608</span>
-          </div>
+          </a>
           <div className="flex items-center gap-2">
             <Mail size={14} className="text-accent" />
             <span className="lowercase font-medium">cinenyomedia@gmail.com</span>
@@ -464,9 +464,14 @@ export default function App() {
                     ))}
                   </ul>
 
-                  <button className="group flex items-center gap-4 text-[10px] md:text-[11px] font-bold uppercase tracking-[0.3em] text-white hover:text-accent transition-colors pt-4 md:pt-8">
+                  <a 
+                    href={`https://wa.me/6285718597608?text=Halo%20Cinenyo%2C%20saya%20tertarik%20dengan%20paket%20${encodeURIComponent(rate.title)}.`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex items-center gap-4 text-[10px] md:text-[11px] font-bold uppercase tracking-[0.3em] text-white hover:text-accent transition-colors pt-4 md:pt-8"
+                  >
                     Choose Plan <X size={12} className="rotate-45 group-hover:rotate-90 transition-transform" />
-                  </button>
+                  </a>
                 </div>
               ))}
             </div>
@@ -480,7 +485,7 @@ export default function App() {
               Let's Create <br /> Something <span className="text-accent">Epic.</span>
             </h2>
             <div className="flex flex-col md:flex-row justify-center items-center gap-6 md:gap-12 pt-6 md:pt-10">
-              <a href="https://wa.me/6285718597608" target="_blank" rel="noopener noreferrer" className="group flex flex-col items-center gap-2 md:gap-4">
+              <a href="https://wa.me/6285718597608?text=Halo%20Cinenyo%2C%20saya%20ingin%20bertanya%20seputar%20layanan%20produksi%20visual." target="_blank" rel="noopener noreferrer" className="group flex flex-col items-center gap-2 md:gap-4">
                 <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-500 group-hover:text-accent transition-colors">Whatsapp Us</span>
                 <span className="text-lg md:text-2xl font-display font-bold">+62 857 1859 7608</span>
               </a>
