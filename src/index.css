@@ -1,0 +1,38 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --color-accent: #FF5E3A; 
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-[#000000] text-slate-100 antialiased;
+  }
+}
+
+.text-gradient {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-accent;
+}
+
+.card-gradient {
+  @apply bg-zinc-900/40 border border-white/5 rounded-xl hover:border-accent/40 transition-all duration-300;
+}
+
+.hero-overlay {
+  background: linear-gradient(to right, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.2) 100%);
+}
+
+.nav-link {
+  @apply transition-colors duration-300 hover:text-accent relative;
+}
+
+.nav-link.active::after {
+  content: "";
+  @apply absolute -bottom-1 left-0 w-full h-[2px] bg-accent;
+}

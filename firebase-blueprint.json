@@ -1,0 +1,71 @@
+{
+  "entities": {
+    "PortfolioItem": {
+      "title": "Portfolio Item",
+      "description": "A single piece of photography or videography work.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string", "enum": ["photography", "videography"] },
+        "type": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "description": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "category", "type", "imageUrl", "createdAt"]
+    },
+    "Settings": {
+      "title": "Settings",
+      "description": "App settings including admin PIN.",
+      "type": "object",
+      "properties": {
+        "adminPin": { "type": "string" }
+      }
+    },
+    "RateItem": {
+      "title": "Rate Item",
+      "description": "A service package with pricing.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "price": { "type": "string" },
+        "category": { "type": "string" },
+        "features": { "type": "array", "items": { "type": "string" } },
+        "order": { "type": "number" }
+      },
+      "required": ["title", "price", "category", "features"]
+    },
+    "Profile": {
+      "title": "Profile",
+      "description": "User bio, gear, and experience settings.",
+      "type": "object",
+      "properties": {
+        "bio": { "type": "string" },
+        "experienceYear": { "type": "number" },
+        "cameraBody": { "type": "string" },
+        "lenses": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  },
+  "firestore": {
+    "/portfolio/{itemId}": {
+      "schema": "PortfolioItem",
+      "description": "Collection of gallery images and videos."
+    },
+    "/rates/{rateId}": {
+      "schema": "RateItem",
+      "description": "Service pricing packages."
+    },
+    "/profile/main": {
+      "schema": "Profile",
+      "description": "Main profile settings."
+    },
+    "/settings/admin": {
+      "schema": "Settings",
+      "description": "Global admin configuration."
+    }
+  }
+}

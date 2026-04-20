@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default-deny everything
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Allow public read for portfolio items
+    match /portfolio/{itemId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Allow public read for rates
+    match /rates/{rateId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Allow public read for profile
+    match /profile/{docId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Allow public read/write for settings (PIN check/update)
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if true;
+    }
+  }
+}
