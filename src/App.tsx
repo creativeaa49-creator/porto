@@ -99,8 +99,16 @@ export default function App() {
           localStorage.setItem('rates_cache', JSON.stringify(allData.rates));
         }
         if (allData.profile && allData.profile.length > 0) {
-          setLiveProfile(allData.profile[0]);
-          localStorage.setItem('profile_cache', JSON.stringify(allData.profile[0]));
+          const rawProfile = allData.profile[0];
+          const normalizedProfile = {
+            ...liveProfile,
+            ...rawProfile,
+            lenses: Array.isArray(rawProfile.lenses) 
+              ? rawProfile.lenses 
+              : (typeof rawProfile.lenses === 'string' && rawProfile.lenses ? rawProfile.lenses.split(',').map((l: string) => l.trim()) : (liveProfile.lenses || []))
+          };
+          setLiveProfile(normalizedProfile);
+          localStorage.setItem('profile_cache', JSON.stringify(normalizedProfile));
         }
       }
     } catch (error) {
@@ -367,6 +375,58 @@ export default function App() {
 
       {/* Main Content Sections */}
       <main className="bg-black">
+        <section id="about" className="py-24 md:py-40 px-6 sm:px-12 md:px-24 bg-zinc-900/20">
+          <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-16 md:gap-24 items-center">
+            <div className="w-full lg:w-1/2 relative">
+               <div className="aspect-[4/5] bg-zinc-800 rounded-2xl overflow-hidden relative z-10">
+                  <img 
+                    src="https://images.unsplash.com/photo-1552168324-d612d77725e3?auto=format&fit=crop&q=80&w=1200" 
+                    className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700" 
+                    alt="Cinematographer"
+                  />
+               </div>
+               <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-accent/10 rounded-full blur-3xl -z-0"></div>
+               <div className="absolute -top-10 -left-10 w-40 h-40 border border-accent/20 rounded-2xl -z-0"></div>
+            </div>
+
+            <div className="w-full lg:w-1/2 space-y-10 md:space-y-12">
+              <div className="space-y-6">
+                <div className="flex items-center gap-3">
+                  <span className="w-8 h-[1px] bg-accent"></span>
+                  <span className="text-accent text-[10px] md:text-[12px] font-bold uppercase tracking-[0.4em]">The Director</span>
+                </div>
+                <h2 className="text-4xl md:text-6xl font-display font-medium text-white italic leading-tight">Mastering The Art Of <br /> Cinematic Storytelling</h2>
+                <p className="text-zinc-400 text-sm md:text-base leading-relaxed max-w-xl">
+                  {liveProfile.bio}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 md:gap-12">
+                <div className="space-y-3">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-accent/60">Experience</p>
+                  <p className="text-2xl font-display font-bold text-white">{new Date().getFullYear() - (liveProfile.experienceYear || 2020)} Years Active</p>
+                  <p className="text-[10px] text-zinc-500 uppercase tracking-widest leading-none">Crafting narratives since {liveProfile.experienceYear}</p>
+                </div>
+                <div className="space-y-3">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-accent/60">Primary Gear</p>
+                  <p className="text-2xl font-display font-bold text-white">{liveProfile.cameraBody}</p>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {(Array.isArray(liveProfile.lenses) ? liveProfile.lenses : []).map((lens: string) => (
+                      <span key={lens} className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[9px] uppercase tracking-wider font-bold text-zinc-400">{lens}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-6">
+                <a href="#work" className="group inline-flex items-center gap-4 text-[10px] font-bold uppercase tracking-[0.4em] text-white hover:text-accent transition-colors">
+                  Explore Filmography <ArrowUpRight size={16} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Portfolio Section */}
         <section id="work" className="py-20 md:py-32 px-6 md:px-12 lg:px-24 space-y-12 md:space-y-20">
           <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-8 md:gap-10">
@@ -375,7 +435,7 @@ export default function App() {
                 <span className="w-6 md:w-8 h-[1px] bg-accent"></span>
                 <span className="text-accent text-[9px] md:text-[11px] font-bold uppercase tracking-[0.3em] md:tracking-[0.4em]">Our Portfolio</span>
               </div>
-              <h2 className="text-3xl md:text-5xl lg:text-6xl font-display font-medium text-white italic">Curated stories</h2>
+              <h2 className="text-3xl md:text-5xl lg:text-6xl font-display font-medium text-white italic"></h2>
             </div>
             
             <div className="flex flex-wrap gap-2 p-1 bg-white/5 rounded-2xl md:rounded-full border border-white/10 backdrop-blur-sm">

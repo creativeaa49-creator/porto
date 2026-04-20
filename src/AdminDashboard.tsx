@@ -65,8 +65,18 @@ export default function AdminDashboard({ onBack, onRefresh }: { onBack: () => vo
           localStorage.setItem('rates_cache', JSON.stringify(allData.rates));
         }
         if (allData.profile && allData.profile.length > 0) {
-          setProfileFormData(allData.profile[0]);
-          localStorage.setItem('profile_cache', JSON.stringify(allData.profile[0]));
+          const rawProfile = allData.profile[0];
+          // Normalisasi data profile agar tidak ada field yang hilang atau salah tipe
+          const normalizedProfile = {
+            ...profileFormData, // Gunakan default sebagai base
+            ...rawProfile,      // Timpa dengan data dari sheet
+            // Pastikan lenses tetap array meskipun dari sheet datang sebagai string atau null
+            lenses: Array.isArray(rawProfile.lenses) 
+              ? rawProfile.lenses 
+              : (typeof rawProfile.lenses === 'string' && rawProfile.lenses ? rawProfile.lenses.split(',').map((l: string) => l.trim()) : profileFormData.lenses)
+          };
+          setProfileFormData(normalizedProfile);
+          localStorage.setItem('profile_cache', JSON.stringify(normalizedProfile));
         }
       } else {
         setErrorMsg("Gagal mengambil data kilat. Pastikan Deployment Apps Script sudah diatur ke 'Anyone'.");
@@ -146,15 +156,30 @@ export default function AdminDashboard({ onBack, onRefresh }: { onBack: () => vo
     try {
       setIsSaving(true);
       // Coba update di Sheets
-      await sheetsService.update('profile', 'main', profileFormData);
-      alert("Profil berhasil diperbarui");
-      fetchData();
+      await sheetsService.update('profile', 'main', {
+        ...profileFormData,
+        // Pastikan lenses diubah ke string atau format yang aman jika perlu
+        lenses: Array.isArray(profileFormData.lenses) ? profileFormData.lenses.join(', ') : profileFormData.lenses
+      });
+      
+      alert("Profil berhasil diperbarui!");
+      
+      // Beri jeda sedikit agar Google Script selesai memproses sebelum ambil data baru
+      setTimeout(() => {
+        fetchData();
+      }, 1000);
     } catch (error) { 
       // Jika 'main' tidak ditemukan (update gagal), coba create
       try {
-        await sheetsService.create('profile', { ...profileFormData, id: 'main' });
-        alert("Profil berhasil diperbarui");
-        fetchData();
+        await sheetsService.create('profile', { 
+          ...profileFormData, 
+          id: 'main',
+          lenses: Array.isArray(profileFormData.lenses) ? profileFormData.lenses.join(', ') : profileFormData.lenses
+        });
+        alert("Profil berhasil dibuat!");
+        setTimeout(() => {
+          fetchData();
+        }, 1000);
       } catch (err) {
         handleFirestoreError(err); 
       }
