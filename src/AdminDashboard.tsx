@@ -43,7 +43,9 @@ export default function AdminDashboard({ onBack, onRefresh }: { onBack: () => vo
     cameraBody: 'Sony A7 mark III',
     lenses: ['Samyang 50mm f1.4', 'Sony 28mm f2.8'],
     heroBgUrl: '',
-    heroBgType: 'image' as 'image' | 'video'
+    heroBgType: 'image' as 'image' | 'video',
+    heroTitle: 'Behind Every Great Film is a Cinematography.',
+    aboutImageUrl: 'https://images.unsplash.com/photo-1552168324-d612d77725e3?auto=format&fit=crop&q=80&w=1200'
   });
 
   const [showSettings, setShowSettings] = useState(false);
@@ -64,19 +66,25 @@ export default function AdminDashboard({ onBack, onRefresh }: { onBack: () => vo
           setRates(allData.rates);
           localStorage.setItem('rates_cache', JSON.stringify(allData.rates));
         }
-        if (allData.profile && allData.profile.length > 0) {
+        
+        // Handle Profile Data
+        if (allData.profile && Array.isArray(allData.profile) && allData.profile.length > 0) {
           const rawProfile = allData.profile[0];
-          // Normalisasi data profile agar tidak ada field yang hilang atau salah tipe
-          const normalizedProfile = {
-            ...profileFormData, // Gunakan default sebagai base
-            ...rawProfile,      // Timpa dengan data dari sheet
-            // Pastikan lenses tetap array meskipun dari sheet datang sebagai string atau null
+          
+          // Merge with current state or defaults to prevent losing data
+          const mergedProfile = {
+            ...profileFormData,
+            ...rawProfile,
+            // Deeply ensure lenses is an array
             lenses: Array.isArray(rawProfile.lenses) 
               ? rawProfile.lenses 
-              : (typeof rawProfile.lenses === 'string' && rawProfile.lenses ? rawProfile.lenses.split(',').map((l: string) => l.trim()) : profileFormData.lenses)
+              : (typeof rawProfile.lenses === 'string' && rawProfile.lenses 
+                  ? rawProfile.lenses.split(',').map((l: string) => l.trim()).filter(Boolean) 
+                  : (profileFormData.lenses || []))
           };
-          setProfileFormData(normalizedProfile);
-          localStorage.setItem('profile_cache', JSON.stringify(normalizedProfile));
+          
+          setProfileFormData(mergedProfile);
+          localStorage.setItem('profile_cache', JSON.stringify(mergedProfile));
         }
       } else {
         setErrorMsg("Gagal mengambil data kilat. Pastikan Deployment Apps Script sudah diatur ke 'Anyone'.");
@@ -153,36 +161,41 @@ export default function AdminDashboard({ onBack, onRefresh }: { onBack: () => vo
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSaving) return;
+    
     try {
       setIsSaving(true);
-      // Coba update di Sheets
-      await sheetsService.update('profile', 'main', {
+      
+      const payload = {
         ...profileFormData,
-        // Pastikan lenses diubah ke string atau format yang aman jika perlu
-        lenses: Array.isArray(profileFormData.lenses) ? profileFormData.lenses.join(', ') : profileFormData.lenses
-      });
+        id: 'main', 
+        lenses: Array.isArray(profileFormData.lenses) ? profileFormData.lenses.join(', ') : profileFormData.lenses,
+        updatedAt: new Date().toISOString()
+      };
+
+      console.log("[Profile] Saving background:", payload.heroBgUrl, payload.heroBgType);
       
-      alert("Profil berhasil diperbarui!");
+      // Kirim update ke Google Sheets
+      await sheetsService.update('profile', 'main', payload);
       
-      // Beri jeda sedikit agar Google Script selesai memproses sebelum ambil data baru
+      // Kirim juga sebagai 'create' ke ID 'main' sebagai backup jika 'update' gagal mencari baris
+      try {
+        await sheetsService.create('profile', { ...payload, action: 'create' });
+      } catch (e) {
+        console.warn("Backup creation skipped");
+      }
+
+      // Berikan feedback instan dan perbarui cache lokal
+      localStorage.setItem('profile_cache', JSON.stringify(payload));
+      alert("Profil, Background, dan Detail Halaman berhasil diperbarui! Perubahan muncul segera di layar Anda.");
+      
+      // Sinkronisasi ulang data setelah beberapa detik
       setTimeout(() => {
         fetchData();
-      }, 1000);
+        if (onRefresh) onRefresh();
+      }, 2000);
     } catch (error) { 
-      // Jika 'main' tidak ditemukan (update gagal), coba create
-      try {
-        await sheetsService.create('profile', { 
-          ...profileFormData, 
-          id: 'main',
-          lenses: Array.isArray(profileFormData.lenses) ? profileFormData.lenses.join(', ') : profileFormData.lenses
-        });
-        alert("Profil berhasil dibuat!");
-        setTimeout(() => {
-          fetchData();
-        }, 1000);
-      } catch (err) {
-        handleFirestoreError(err); 
-      }
+      console.error("Save error:", error);
+      alert("Gagal menyimpan profil. Periksa koneksi internet.");
     } finally {
       setIsSaving(false);
     }
@@ -472,113 +485,181 @@ export default function AdminDashboard({ onBack, onRefresh }: { onBack: () => vo
         )}
 
         {activeView === 'profile' && (
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="max-w-4xl bg-zinc-900/40 p-6 md:p-10 rounded-2xl border border-white/5">
-            <h2 className="text-2xl md:text-3xl font-display font-medium text-white underline decoration-accent italic underline-offset-8 mb-8 md:mb-12">Edit Profil & Peralatan</h2>
-            <form onSubmit={handleProfileSubmit} className="space-y-8 md:space-y-10">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-black/40 p-6 md:p-8 rounded-2xl border border-white/10">
-                <div className="space-y-4">
-                  <h3 className="text-sm font-bold uppercase tracking-widest text-accent flex items-center gap-2"><ImageIcon size={18} /> Pengaturan Background Utama</h3>
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="max-w-4xl mx-auto space-y-12">
+            <div className="flex items-center justify-between border-b border-white/10 pb-6">
+              <div>
+                <h2 className="text-3xl font-display font-medium text-white italic">Pengaturan Profil</h2>
+                <p className="text-[10px] uppercase tracking-widest text-slate-500 mt-2">Kelola identitas visual dan detail teknis Anda</p>
+              </div>
+              <Save size={24} className="text-accent/20" />
+            </div>
+
+            <form onSubmit={handleProfileSubmit} className="space-y-12 pb-24">
+              {/* Section: Hero Background */}
+              <div className="bg-zinc-900/40 p-8 rounded-2xl border border-white/5 space-y-8">
+                <div className="flex items-center gap-3">
+                  <ImageIcon size={18} className="text-accent" />
+                  <h3 className="text-xs uppercase font-bold tracking-[0.2em] text-white">Visual Utama (Hero)</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase font-bold text-slate-500">Tipe Konten</label>
+                      <div className="flex p-1 bg-black/40 rounded-lg border border-white/5">
+                        {['image', 'video'].map((type) => (
+                          <button
+                            key={type}
+                            type="button"
+                            onClick={() => setProfileFormData({...profileFormData, heroBgType: type as any})}
+                            className={`flex-1 py-2 rounded text-[10px] font-bold uppercase tracking-widest transition-all ${profileFormData.heroBgType === type ? 'bg-accent text-black' : 'text-slate-500 hover:text-white'}`}
+                          >
+                            {type === 'image' ? 'Foto' : 'Video'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[10px] uppercase font-bold text-slate-500">URL Background</label>
+                       <input 
+                        placeholder="Tempel link foto/video di sini..."
+                        className="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-accent text-sm font-mono" 
+                        value={profileFormData.heroBgUrl} 
+                        onChange={e => setProfileFormData({...profileFormData, heroBgUrl: e.target.value})}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                     <label className="text-[10px] uppercase font-bold text-slate-500">Live Preview</label>
+                     <div className="aspect-video bg-black/60 rounded-xl overflow-hidden border border-white/10 relative group">
+                        {profileFormData.heroBgUrl ? (
+                          profileFormData.heroBgType === 'video' ? (
+                            <video key={profileFormData.heroBgUrl} autoPlay muted loop className="w-full h-full object-cover opacity-60">
+                              <source src={profileFormData.heroBgUrl} type="video/mp4" />
+                            </video>
+                          ) : (
+                            <img src={profileFormData.heroBgUrl} className="w-full h-full object-cover opacity-60" referrerPolicy="no-referrer" alt="Hero Preview" />
+                          )
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center text-zinc-700">
+                             <ImageIcon size={32} strokeWidth={1} />
+                             <span className="text-[9px] uppercase tracking-widest mt-2">No URL Provided</span>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-4">
+                           <span className="text-[9px] uppercase font-bold text-white/40">Viewport Preview</span>
+                        </div>
+                     </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] uppercase font-bold text-slate-500">Headline Halaman Utama</label>
+                  <textarea 
+                    rows={3}
+                    placeholder="Gunakan \n untuk baris baru..."
+                    className="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-accent text-lg font-display font-medium text-white placeholder:text-white/10" 
+                    value={profileFormData.heroTitle} 
+                    onChange={e => setProfileFormData({...profileFormData, heroTitle: e.target.value})}
+                  />
+                  <p className="text-[8px] text-slate-600 uppercase tracking-widest leading-relaxed">Teks yang akan muncul di atas background utama. Gunakan kalimat yang dramatis.</p>
+                </div>
+              </div>
+
+              {/* Section: Professional Bio */}
+              <div className="bg-zinc-900/40 p-8 rounded-2xl border border-white/5 space-y-8">
+                <div className="flex items-center gap-3">
+                  <UserIcon size={18} className="text-accent" />
+                  <h3 className="text-xs uppercase font-bold tracking-[0.2em] text-white">Narasi & Biografi</h3>
+                </div>
+
+                <div className="space-y-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-bold text-slate-500">Tipe Background</label>
-                    <div className="flex gap-4">
-                      {['image', 'video'].map((type) => (
-                        <button
-                          key={type}
-                          type="button"
-                          onClick={() => setProfileFormData({...profileFormData, heroBgType: type as any})}
-                          className={`flex-1 py-3 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all border ${profileFormData.heroBgType === type ? 'bg-accent text-black border-accent' : 'bg-transparent text-white border-white/10 hover:border-white/30'}`}
-                        >
-                          {type === 'image' ? 'Gambar' : 'Video'}
-                        </button>
+                    <label className="text-[10px] uppercase font-bold text-slate-500">Tentang Saya (Bio)</label>
+                    <textarea 
+                      rows={5}
+                      className="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-accent text-sm leading-relaxed" 
+                      value={profileFormData.bio} 
+                      onChange={e => setProfileFormData({...profileFormData, bio: e.target.value})}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase font-bold text-slate-500">Tahun Mulai Karir</label>
+                      <input 
+                        type="number"
+                        className="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-accent text-xl font-bold font-display" 
+                        value={profileFormData.experienceYear} 
+                        onChange={e => setProfileFormData({...profileFormData, experienceYear: parseInt(e.target.value)})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase font-bold text-slate-500">URL Foto Profil (About Section)</label>
+                      <input 
+                        className="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-accent text-sm font-mono" 
+                        value={profileFormData.aboutImageUrl} 
+                        onChange={e => setProfileFormData({...profileFormData, aboutImageUrl: e.target.value})}
+                        placeholder="Link foto portrait kamu..."
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section: Gear & Lenses */}
+              <div className="bg-zinc-900/40 p-8 rounded-2xl border border-white/5 space-y-8">
+                <div className="flex items-center gap-3">
+                  <Camera size={18} className="text-accent" />
+                  <h3 className="text-xs uppercase font-bold tracking-[0.2em] text-white">Spesifikasi Peralatan (Gear)</h3>
+                </div>
+
+                <div className="space-y-8">
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase font-bold text-slate-500">Kamera Utama</label>
+                    <input 
+                      className="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-accent text-sm font-bold tracking-tight" 
+                      value={profileFormData.cameraBody} 
+                      onChange={e => setProfileFormData({...profileFormData, cameraBody: e.target.value})}
+                    />
+                  </div>
+
+                  <div className="space-y-4">
+                    <label className="text-[10px] uppercase font-bold text-slate-500 flex items-center justify-between">
+                      Daftar Lensa
+                      <button type="button" onClick={() => setProfileFormData({...profileFormData, lenses: [...profileFormData.lenses, '']})} className="text-[9px] text-accent hover:underline">+ Tambah</button>
+                    </label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {profileFormData.lenses.map((lens, idx) => (
+                        <div key={idx} className="flex gap-2 group">
+                          <input 
+                            className="flex-1 bg-black/40 border border-white/10 p-3 rounded-lg outline-none focus:border-accent text-[11px] font-medium" 
+                            value={lens} 
+                            placeholder={`Lensa ${idx + 1}`}
+                            onChange={e => {
+                              const newLenses = [...profileFormData.lenses];
+                              newLenses[idx] = e.target.value;
+                              setProfileFormData({...profileFormData, lenses: newLenses});
+                            }}
+                          />
+                          <button type="button" onClick={() => setProfileFormData({...profileFormData, lenses: profileFormData.lenses.filter((_, i) => i !== idx)})} className="p-2 opacity-0 group-hover:opacity-100 text-slate-600 hover:text-red-500 transition-all"><X size={16} /></button>
+                        </div>
                       ))}
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-bold text-slate-500">URL Background ({profileFormData.heroBgType === 'image' ? 'Gambar' : 'Video MP4'})</label>
-                    <input 
-                      placeholder={profileFormData.heroBgType === 'image' ? "https://images.unsplash.com/..." : "https://domain.com/video.mp4"}
-                      className="w-full bg-black/30 border border-white/10 p-4 rounded-xl outline-none focus:border-accent text-sm" 
-                      value={profileFormData.heroBgUrl} 
-                      onChange={e => setProfileFormData({...profileFormData, heroBgUrl: e.target.value})}
-                    />
-                  </div>
-                </div>
-                
-                <div className="flex flex-col justify-center items-center p-4 border border-dashed border-white/10 rounded-xl bg-black/20 overflow-hidden">
-                  <p className="text-[9px] uppercase tracking-widest font-bold text-slate-500 mb-4">Preview Background</p>
-                  {profileFormData.heroBgUrl ? (
-                    <div className="w-full h-32 rounded overflow-hidden relative">
-                      {profileFormData.heroBgType === 'video' ? (
-                        <video key={profileFormData.heroBgUrl} className="w-full h-full object-cover">
-                          <source src={profileFormData.heroBgUrl} type="video/mp4" />
-                        </video>
-                      ) : (
-                        <img src={profileFormData.heroBgUrl} className="w-full h-full object-cover" alt="Hero Preview" />
-                      )}
-                    </div>
-                  ) : (
-                    <div className="text-zinc-700 flex flex-col items-center">
-                      <SettingsIcon size={32} />
-                      <span className="text-[10px] mt-2">Belum ada URL</span>
-                    </div>
-                  )}
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <label className="text-xs uppercase tracking-widest font-bold text-slate-500 flex items-center gap-2"><UserIcon size={16} /> Bio / Tentang Saya</label>
-                <textarea 
-                  rows={4}
-                  className="w-full bg-black/30 border border-white/10 p-4 rounded-xl outline-none focus:border-accent text-sm leading-relaxed" 
-                  value={profileFormData.bio} 
-                  onChange={e => setProfileFormData({...profileFormData, bio: e.target.value})}
-                />
+              <div className="fixed bottom-0 left-0 right-0 p-6 bg-black/80 backdrop-blur-xl border-t border-white/10 flex justify-center z-[70]">
+                <button 
+                  type="submit" 
+                  disabled={isSaving} 
+                  className={`w-full max-w-md py-5 bg-accent text-black font-bold uppercase tracking-[0.3em] rounded-xl shadow-2xl shadow-accent/20 flex items-center justify-center gap-4 ${isSaving ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] active:scale-[0.98] transition-all'}`}
+                >
+                  {isSaving ? <span className="animate-pulse">Menyimpan...</span> : 'Simpan Seluruh Profil'}
+                </button>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-4">
-                  <label className="text-xs uppercase tracking-widest font-bold text-slate-500 flex items-center gap-2">Tahun Mulai Pengalaman</label>
-                  <input 
-                    type="number"
-                    className="w-full bg-black/30 border border-white/10 p-4 rounded-xl outline-none focus:border-accent text-sm" 
-                    value={profileFormData.experienceYear} 
-                    onChange={e => setProfileFormData({...profileFormData, experienceYear: parseInt(e.target.value)})}
-                  />
-                </div>
-                <div className="space-y-4">
-                  <label className="text-xs uppercase tracking-widest font-bold text-slate-500 flex items-center gap-2"><Camera size={16} /> Kamera Utama</label>
-                  <input 
-                    className="w-full bg-black/30 border border-white/10 p-4 rounded-xl outline-none focus:border-accent text-sm" 
-                    value={profileFormData.cameraBody} 
-                    onChange={e => setProfileFormData({...profileFormData, cameraBody: e.target.value})}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <label className="text-xs uppercase tracking-widest font-bold text-slate-500 flex items-center gap-2">Daftar Lensa</label>
-                <div className="space-y-3">
-                  {profileFormData.lenses.map((lens, idx) => (
-                    <div key={idx} className="flex gap-2">
-                      <input 
-                        className="flex-1 bg-black/30 border border-white/10 p-3 rounded-xl outline-none focus:border-accent text-sm" 
-                        value={lens} 
-                        onChange={e => {
-                          const newLenses = [...profileFormData.lenses];
-                          newLenses[idx] = e.target.value;
-                          setProfileFormData({...profileFormData, lenses: newLenses});
-                        }}
-                      />
-                      <button type="button" onClick={() => setProfileFormData({...profileFormData, lenses: profileFormData.lenses.filter((_, i) => i !== idx)})} className="p-3 text-slate-600 hover:text-red-500"><X size={18} /></button>
-                    </div>
-                  ))}
-                  <button type="button" onClick={() => setProfileFormData({...profileFormData, lenses: [...profileFormData.lenses, '']})} className="text-[10px] uppercase font-bold text-accent hover:underline">+ Tambah Lensa</button>
-                </div>
-              </div>
-
-              <button type="submit" disabled={isSaving} className={`w-full md:w-auto px-16 py-4 bg-accent text-black font-bold uppercase tracking-widest rounded shadow-lg shadow-accent/10 ${isSaving ? 'opacity-50 cursor-not-allowed' : 'hover:brightness-110 transition-all'}`}>
-                {isSaving ? 'Menyimpan...' : 'Simpan Profil'}
-              </button>
             </form>
           </motion.div>
         )}

@@ -16,9 +16,13 @@ export interface RateItem {
   category: 'photography' | 'videography';
 }
 
-export interface ContactInfo {
-  email: string;
-  instagram: string;
-  whatsapp: string;
-  location: string;
+export interface Profile {
+  bio: string;
+  experienceYear: number;
+  cameraBody: string;
+  lenses: string[];
+  heroBgUrl: string;
+  heroBgType: 'image' | 'video';
+  heroTitle?: string;
+  aboutImageUrl?: string;
 }

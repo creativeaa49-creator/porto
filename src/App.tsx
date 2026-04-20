@@ -65,7 +65,9 @@ export default function App() {
         cameraBody: 'Sony A7 mark III',
         lenses: ['Samyang 50mm f1.4', 'Sony 28mm f2.8'],
         heroBgUrl: 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&q=80&w=2070',
-        heroBgType: 'image'
+        heroBgType: 'image',
+        heroTitle: 'Behind Every Great Film is a Cinematography.',
+        aboutImageUrl: 'https://images.unsplash.com/photo-1552168324-d612d77725e3?auto=format&fit=crop&q=80&w=1200'
       };
     } catch {
       return {
@@ -74,7 +76,9 @@ export default function App() {
         cameraBody: 'Sony A7 mark III',
         lenses: ['Samyang 50mm f1.4', 'Sony 28mm f2.8'],
         heroBgUrl: 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&q=80&w=2070',
-        heroBgType: 'image'
+        heroBgType: 'image',
+        heroTitle: 'Behind Every Great Film is a Cinematography.',
+        aboutImageUrl: 'https://images.unsplash.com/photo-1552168324-d612d77725e3?auto=format&fit=crop&q=80&w=1200'
       };
     }
   });
@@ -98,17 +102,22 @@ export default function App() {
           setLiveRates(allData.rates);
           localStorage.setItem('rates_cache', JSON.stringify(allData.rates));
         }
-        if (allData.profile && allData.profile.length > 0) {
+        if (allData.profile && Array.isArray(allData.profile) && allData.profile.length > 0) {
           const rawProfile = allData.profile[0];
-          const normalizedProfile = {
-            ...liveProfile,
-            ...rawProfile,
-            lenses: Array.isArray(rawProfile.lenses) 
-              ? rawProfile.lenses 
-              : (typeof rawProfile.lenses === 'string' && rawProfile.lenses ? rawProfile.lenses.split(',').map((l: string) => l.trim()) : (liveProfile.lenses || []))
-          };
-          setLiveProfile(normalizedProfile);
-          localStorage.setItem('profile_cache', JSON.stringify(normalizedProfile));
+          
+          setLiveProfile(prev => {
+            const normalized = {
+              ...prev,
+              ...rawProfile,
+              lenses: Array.isArray(rawProfile.lenses) 
+                ? rawProfile.lenses 
+                : (typeof rawProfile.lenses === 'string' && rawProfile.lenses 
+                    ? rawProfile.lenses.split(',').map((l: string) => l.trim()).filter(Boolean) 
+                    : (prev.lenses || []))
+            };
+            localStorage.setItem('profile_cache', JSON.stringify(normalized));
+            return normalized;
+          });
         }
       }
     } catch (error) {
@@ -306,7 +315,7 @@ export default function App() {
       {/* Hero Section */}
       <header className="relative h-screen w-full flex items-center overflow-hidden">
         <div className="absolute inset-0 z-0 bg-black">
-          {liveProfile.heroBgType === 'video' ? (
+          {liveProfile.heroBgType === 'video' && liveProfile.heroBgUrl ? (
             <div className="w-full h-full relative">
               <video 
                 autoPlay 
@@ -341,9 +350,8 @@ export default function App() {
               <div className="w-8 md:w-12 h-[2px] bg-accent"></div>
               <span className="text-accent text-[9px] md:text-sm font-bold uppercase tracking-[0.3em] md:tracking-[0.4em]">One Scene At A Time - The Movie Maker Director.</span>
             </div>
-            <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-display font-bold leading-[0.95] md:leading-[0.9] text-white tracking-tight">
-              Behind Every Great <br />
-              Film is a Cinematography.
+            <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-display font-bold leading-[0.95] md:leading-[0.9] text-white tracking-tight whitespace-pre-line">
+              {liveProfile.heroTitle || 'Behind Every Great \n Film is a Cinematography.'}
             </h1>
             <p className="text-white/60 text-sm md:text-base lg:text-lg max-w-xl leading-relaxed font-medium">
               {liveProfile.bio || 'Crafting unforgettable stories bringing their creative vision to life on the big screen - the movie maker director.'}
@@ -380,9 +388,10 @@ export default function App() {
             <div className="w-full lg:w-1/2 relative">
                <div className="aspect-[4/5] bg-zinc-800 rounded-2xl overflow-hidden relative z-10">
                   <img 
-                    src="https://images.unsplash.com/photo-1552168324-d612d77725e3?auto=format&fit=crop&q=80&w=1200" 
+                    src={liveProfile.aboutImageUrl || "https://images.unsplash.com/photo-1552168324-d612d77725e3?auto=format&fit=crop&q=80&w=1200"} 
                     className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700" 
                     alt="Cinematographer"
+                    referrerPolicy="no-referrer"
                   />
                </div>
                <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-accent/10 rounded-full blur-3xl -z-0"></div>
