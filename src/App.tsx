@@ -14,6 +14,7 @@ import {
   ChevronRight, 
   Menu, 
   X,
+  MessageCircle,
   ArrowUpRight,
   Monitor,
   Lock,
@@ -603,6 +604,35 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* Floating Action Buttons */}
+      <div className="fixed bottom-6 right-6 z-[60] flex flex-col items-end gap-3 pointer-events-none">
+        <motion.a
+          href="https://wa.me/6285718597608?text=Halo%20Cinenyo%2C%20saya%20ingin%20bertanya%20seputar%20layanan%20produksi%20visual."
+          target="_blank"
+          rel="noopener noreferrer"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.5 }}
+          className="pointer-events-auto flex items-center gap-3 px-4 py-3 bg-[#25D366] text-white rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all group"
+        >
+          <span className="text-[10px] font-bold uppercase tracking-widest overflow-hidden block max-w-0 group-hover:max-w-xs transition-all duration-500 whitespace-nowrap">WhatsApp</span>
+          <MessageCircle size={20} fill="currentColor" />
+        </motion.a>
+
+        <motion.a
+          href="https://instagram.com/cinenyo"
+          target="_blank"
+          rel="noopener noreferrer"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.6 }}
+          className="pointer-events-auto flex items-center gap-3 px-4 py-3 bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] text-white rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all group"
+        >
+          <span className="text-[10px] font-bold uppercase tracking-widest overflow-hidden block max-w-0 group-hover:max-w-xs transition-all duration-500 whitespace-nowrap">Instagram</span>
+          <Instagram size={20} />
+        </motion.a>
+      </div>
     </div>
   );
 }
