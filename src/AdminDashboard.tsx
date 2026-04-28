@@ -59,12 +59,27 @@ export default function AdminDashboard({ onBack, onRefresh }: { onBack: () => vo
 
       if (allData) {
         if (Array.isArray(allData.portfolio)) {
-          setItems(allData.portfolio);
-          localStorage.setItem('portfolio_cache', JSON.stringify(allData.portfolio));
+          // Normalisasi portfolio: Gunakan ID yang ada, atau buat cadangan jika benar-benar kosong
+          const normalizedPortfolio = allData.portfolio.map((item: any, idx: number) => ({
+            ...item,
+            id: item.id ? String(item.id).trim() : `pld-${idx}-${Math.random().toString(36).substr(2, 4)}`
+          }));
+          setItems(normalizedPortfolio);
+          localStorage.setItem('portfolio_cache', JSON.stringify(normalizedPortfolio));
         }
         if (Array.isArray(allData.rates)) {
-          setRates(allData.rates);
-          localStorage.setItem('rates_cache', JSON.stringify(allData.rates));
+          // Normalisasi rates: pastikan id string dan features array
+          const normalizedRates = allData.rates.map((rate: any, idx: number) => ({
+            ...rate,
+            id: rate.id ? String(rate.id).trim() : `rld-${idx}-${Math.random().toString(36).substr(2, 4)}`,
+            features: Array.isArray(rate.features) 
+              ? rate.features 
+              : (typeof rate.features === 'string' && rate.features 
+                  ? rate.features.split(',').map((f: string) => f.trim()).filter(Boolean) 
+                  : [])
+          }));
+          setRates(normalizedRates);
+          localStorage.setItem('rates_cache', JSON.stringify(normalizedRates));
         }
         
         // Handle Profile Data
@@ -177,16 +192,20 @@ export default function AdminDashboard({ onBack, onRefresh }: { onBack: () => vo
       // Kirim update ke Google Sheets
       await sheetsService.update('profile', 'main', payload);
       
-      // Kirim juga sebagai 'create' ke ID 'main' sebagai backup jika 'update' gagal mencari baris
+      // Kirim juga sebagai 'create' ke ID 'main' sebagai backup jika 'update' tidak menemukan baris
       try {
-        await sheetsService.create('profile', { ...payload, action: 'create' });
+        await sheetsService.create('profile', { 
+            ...payload, 
+            id: 'main', // Pastikan ID konsisten
+            action: 'create' 
+        });
       } catch (e) {
         console.warn("Backup creation skipped");
       }
 
-      // Berikan feedback instan dan perbarui cache lokal
-      localStorage.setItem('profile_cache', JSON.stringify(payload));
-      alert("Profil, Background, dan Detail Halaman berhasil diperbarui! Perubahan muncul segera di layar Anda.");
+      // Berikan feedback instan dan perbarui cache lokal (gunakan array untuk konsistensi fetch)
+      localStorage.setItem('profile_cache', JSON.stringify(profileFormData));
+      alert("Halaman berhasil diperbarui! (Background & Profil)");
       
       // Sinkronisasi ulang data setelah beberapa detik
       setTimeout(() => {
@@ -225,13 +244,37 @@ export default function AdminDashboard({ onBack, onRefresh }: { onBack: () => vo
   };
 
   const handleDelete = async (collectionName: 'portfolio' | 'rates', id: string) => {
+    if (!id) {
+      alert("ID item tidak valid. Tidak bisa menghapus.");
+      return;
+    }
     const msg = collectionName === 'portfolio' ? 'karya' : 'harga';
-    if (window.confirm(`Apakah Anda yakin ingin menghapus ${msg} ini?`)) {
+    if (window.confirm(`Hapus ${msg} ini secara permanen?`)) {
       try { 
+        setIsSaving(true);
+        console.log(`[Admin] Menghapus ${collectionName} ID:`, id);
+        
+        // Kirim request hapus
         await sheetsService.delete(collectionName, id); 
-        fetchData(); // Refresh data
+        
+        // Optimistic UI Update: Langsung hapus dari state
+        if (collectionName === 'portfolio') {
+          setItems(prev => prev.filter(item => item.id !== id));
+        } else {
+          setRates(prev => prev.filter(rate => rate.id !== id));
+        }
+        
+        alert(`${msg} berhasil dihapus! (Perubahan akan sinkron penuh dalam beberapa detik)`);
+        
+        // Sedikit delay sebelum fetch ulang agar Google Script sempat memproses
+        setTimeout(() => {
+          fetchData(); 
+        }, 1500);
       } catch (error) { 
-        handleFirestoreError(error); 
+        console.error("Delete error:", error);
+        alert("Gagal menghapus item. Silakan coba lagi atau cek koneksi.");
+      } finally {
+        setIsSaving(false);
       }
     }
   };
@@ -372,7 +415,8 @@ export default function AdminDashboard({ onBack, onRefresh }: { onBack: () => vo
                       </button>
                       <button 
                         onClick={() => handleDelete('portfolio', item.id)} 
-                        className="p-3 bg-red-600 text-white rounded-full hover:scale-110 transition-transform shadow-xl"
+                        disabled={isSaving}
+                        className={`p-3 bg-red-600 text-white rounded-full hover:scale-110 transition-transform shadow-xl ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
                         title="Hapus Karya"
                       >
                         <Trash2 size={18} />
@@ -466,7 +510,8 @@ export default function AdminDashboard({ onBack, onRefresh }: { onBack: () => vo
                     </button>
                     <button 
                         onClick={() => handleDelete('rates', rate.id)} 
-                        className="p-3 bg-red-600 text-white rounded-full hover:scale-110 transition-transform shadow-xl"
+                        disabled={isSaving}
+                        className={`p-3 bg-red-600 text-white rounded-full hover:scale-110 transition-transform shadow-xl ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
                         title="Hapus Harga"
                     >
                         <Trash2 size={18} />
@@ -476,7 +521,11 @@ export default function AdminDashboard({ onBack, onRefresh }: { onBack: () => vo
                   <h3 className="text-xl font-bold text-white uppercase">{rate.title}</h3>
                   <p className="text-xl font-mono text-white/40 mb-4">{rate.price}</p>
                   <ul className="space-y-2">
-                    {rate.features.map(f => <li key={f} className="text-[10px] text-zinc-500 flex items-center gap-2"><span className="w-1 h-1 bg-accent rounded-full" /> {f}</li>)}
+                    {(Array.isArray(rate.features) ? rate.features : []).map((f, idx) => (
+                      <li key={idx} className="text-[10px] text-zinc-500 flex items-center gap-2">
+                        <span className="w-1 h-1 bg-accent rounded-full" /> {f}
+                      </li>
+                    ))}
                   </ul>
                 </div>
               ))}

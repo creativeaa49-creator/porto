@@ -96,12 +96,25 @@ export default function App() {
       
       if (allData) {
         if (Array.isArray(allData.portfolio)) {
-          setLivePortfolio(allData.portfolio);
-          localStorage.setItem('portfolio_cache', JSON.stringify(allData.portfolio));
+          const normalizedPortfolio = allData.portfolio.map((item: any, idx: number) => ({
+            ...item,
+            id: item.id ? String(item.id).trim() : `pld-${idx}-${Math.random().toString(36).substr(2, 4)}`
+          }));
+          setLivePortfolio(normalizedPortfolio);
+          localStorage.setItem('portfolio_cache', JSON.stringify(normalizedPortfolio));
         }
         if (Array.isArray(allData.rates)) {
-          setLiveRates(allData.rates);
-          localStorage.setItem('rates_cache', JSON.stringify(allData.rates));
+          const normalizedRates = allData.rates.map((rate: any, idx: number) => ({
+            ...rate,
+            id: rate.id ? String(rate.id).trim() : `rld-${idx}-${Math.random().toString(36).substr(2, 4)}`,
+            features: Array.isArray(rate.features) 
+              ? rate.features 
+              : (typeof rate.features === 'string' && rate.features 
+                  ? rate.features.split(',').map((f: string) => f.trim()).filter(Boolean) 
+                  : [])
+          }));
+          setLiveRates(normalizedRates);
+          localStorage.setItem('rates_cache', JSON.stringify(normalizedRates));
         }
         if (allData.profile && Array.isArray(allData.profile) && allData.profile.length > 0) {
           const rawProfile = allData.profile[0];
@@ -526,8 +539,8 @@ export default function App() {
                   </div>
 
                   <ul className="space-y-4 md:space-y-5 text-zinc-400 text-[10px] md:text-[11px] font-medium uppercase tracking-widest leading-none">
-                    {rate.features.map(f => (
-                      <li key={f} className="flex items-start gap-3">
+                    {(Array.isArray(rate.features) ? rate.features : []).map((f, i) => (
+                      <li key={i} className="flex items-start gap-3">
                         <ArrowUpRight size={14} className="text-accent shrink-0 mt-[-2px]" />
                         <span className="flex-1">{f}</span>
                       </li>
