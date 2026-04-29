@@ -374,6 +374,14 @@ export default function App() {
               <a href="#contact" className="px-8 md:px-10 py-4 md:py-5 bg-accent text-white font-bold uppercase tracking-[0.2em] text-[10px] md:text-[11px] hover:brightness-110 transition-all text-center">
                 Get Started
               </a>
+              <a 
+                href="https://order-form-gamma-fawn.vercel.app/#" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="px-8 md:px-10 py-4 md:py-5 bg-white/5 backdrop-blur-md border border-white/10 text-white font-bold uppercase tracking-[0.2em] text-[10px] md:text-[11px] hover:bg-white/10 transition-all text-center flex items-center justify-center gap-2"
+              >
+                Order Sekarang <ArrowUpRight size={14} />
+              </a>
               <button className="flex items-center justify-center gap-3 group text-white hover:text-accent transition-colors">
                 <div className="w-10 h-10 md:w-12 md:h-12 border-2 border-white/20 rounded-full flex items-center justify-center group-hover:border-accent transition-all">
                   <Play size={14} md:size={16} fill="currentColor" className="ml-0.5 md:ml-1" />
@@ -547,6 +555,17 @@ export default function App() {
                     ))}
                   </ul>
 
+                  <div className="pt-2 md:pt-4">
+                    <a 
+                      href="https://order-form-gamma-fawn.vercel.app/#" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="w-full py-4 bg-accent/10 border border-accent/20 text-accent text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] rounded flex items-center justify-center gap-2 hover:bg-accent hover:text-black transition-all duration-300"
+                    >
+                      Pesan Sekarang <ArrowUpRight size={14} />
+                    </a>
+                  </div>
+
                   <a 
                     href={`https://wa.me/6285718597608?text=Halo%20Cinenyo%2C%20saya%20tertarik%20dengan%20paket%20${encodeURIComponent(rate.title)}.`}
                     target="_blank"
@@ -620,6 +639,19 @@ export default function App() {
 
       {/* Floating Action Buttons */}
       <div className="fixed bottom-6 right-6 z-[60] flex flex-col items-end gap-3 pointer-events-none">
+        <motion.a
+          href="https://order-form-gamma-fawn.vercel.app/#"
+          target="_blank"
+          rel="noopener noreferrer"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.4 }}
+          className="pointer-events-auto flex items-center gap-3 px-4 py-3 bg-accent text-black rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all group font-bold"
+        >
+          <span className="text-[10px] font-bold uppercase tracking-widest overflow-hidden block max-w-0 group-hover:max-w-xs transition-all duration-500 whitespace-nowrap">Isi Form Order</span>
+          <Monitor size={20} />
+        </motion.a>
+
         <motion.a
           href="https://wa.me/6285718597608?text=Halo%20Cinenyo%2C%20saya%20ingin%20bertanya%20seputar%20layanan%20produksi%20visual."
           target="_blank"
