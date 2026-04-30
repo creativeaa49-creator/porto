@@ -88,6 +88,16 @@ export default function App() {
   const [isPinVerified, setIsPinVerified] = useState(false);
   const [storedPin, setStoredPin] = useState('1234');
   const [showPinInput, setShowPinInput] = useState(false);
+  const [activeVideo, setActiveVideo] = useState<string | null>(null);
+
+  const getYoutubeId = (url: string) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  };
+
+  const heroYoutubeId = getYoutubeId(liveProfile.heroBgUrl);
 
   // Mengambil data dari Google Sheets (Background Sync)
   const fetchData = async () => {
@@ -331,16 +341,25 @@ export default function App() {
         <div className="absolute inset-0 z-0 bg-black">
           {liveProfile.heroBgType === 'video' && liveProfile.heroBgUrl ? (
             <div className="w-full h-full relative">
-              <video 
-                autoPlay 
-                muted 
-                loop 
-                playsInline
-                className="w-full h-full object-cover opacity-60"
-                key={liveProfile.heroBgUrl}
-              >
-                <source src={liveProfile.heroBgUrl} type="video/mp4" />
-              </video>
+              {heroYoutubeId ? (
+                <iframe
+                  className="w-[100vw] h-[56.25vw] min-h-[100vh] min-w-[177.77vh] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-40 scale-110"
+                  src={`https://www.youtube.com/embed/${heroYoutubeId}?autoplay=1&mute=1&loop=1&playlist=${heroYoutubeId}&controls=0&showinfo=0&rel=0&modestbranding=1&enablejsapi=1`}
+                  allow="autoplay; encrypted-media"
+                  frameBorder="0"
+                ></iframe>
+              ) : (
+                <video 
+                  autoPlay 
+                  muted 
+                  loop 
+                  playsInline
+                  className="w-full h-full object-cover opacity-60"
+                  key={liveProfile.heroBgUrl}
+                >
+                  <source src={liveProfile.heroBgUrl} type="video/mp4" />
+                </video>
+              )}
             </div>
           ) : (
             <img 
@@ -382,11 +401,16 @@ export default function App() {
               >
                 Order Sekarang <ArrowUpRight size={14} />
               </a>
-              <button className="flex items-center justify-center gap-3 group text-white hover:text-accent transition-colors">
+              <button 
+                onClick={() => {
+                  if (heroYoutubeId) setActiveVideo(heroYoutubeId);
+                }}
+                className="flex items-center justify-center gap-3 group text-white hover:text-accent transition-colors"
+              >
                 <div className="w-10 h-10 md:w-12 md:h-12 border-2 border-white/20 rounded-full flex items-center justify-center group-hover:border-accent transition-all">
                   <Play size={14} md:size={16} fill="currentColor" className="ml-0.5 md:ml-1" />
                 </div>
-                <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em]">View Our Works</span>
+                <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em]">Watch Showreel</span>
               </button>
             </div>
           </motion.div>
@@ -505,7 +529,22 @@ export default function App() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-80" />
                   <div className="absolute inset-0 bg-accent/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   
-                  <div className="absolute bottom-6 md:bottom-10 left-6 md:left-10 right-6 md:right-10 space-y-2 md:space-y-3 transform translate-y-2 md:translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+                  {item.videoUrl && (
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 group-hover:bg-accent group-hover:text-black transition-all duration-500 z-20">
+                      <Play size={24} fill="currentColor" className="ml-1" />
+                    </div>
+                  )}
+
+                  <button 
+                    onClick={() => {
+                      const ytId = getYoutubeId(item.videoUrl || '');
+                      if (ytId) setActiveVideo(ytId);
+                    }}
+                    className="absolute inset-0 z-30"
+                    aria-label={`View ${item.title}`}
+                  />
+                  
+                  <div className="absolute bottom-6 md:bottom-10 left-6 md:left-10 right-6 md:right-10 space-y-2 md:space-y-3 transform translate-y-2 md:translate-y-4 group-hover:translate-y-0 transition-transform duration-500 z-30 pointer-events-none">
                     <div className="flex items-center gap-2">
                       <span className="w-3 md:w-4 h-[1px] bg-accent"></span>
                       <p className="text-[9px] md:text-[10px] uppercase tracking-widest font-bold text-accent">{item.type || item.category}</p>
@@ -636,6 +675,35 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* Video Modal */}
+      <AnimatePresence>
+        {activeVideo && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 md:p-12"
+          >
+            <button 
+              onClick={() => setActiveVideo(null)}
+              className="absolute top-8 right-8 text-white hover:text-accent p-2 transition-colors"
+            >
+              <X size={32} />
+            </button>
+            <div className="w-full max-w-6xl aspect-video bg-black shadow-2xl rounded-2xl overflow-hidden border border-white/10">
+              <iframe
+                className="w-full h-full"
+                src={`https://www.youtube.com/embed/${activeVideo}?autoplay=1`}
+                title="Video Showcase"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              ></iframe>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Floating Action Buttons */}
       <div className="fixed bottom-6 right-6 z-[60] flex flex-col items-end gap-3 pointer-events-none">

@@ -3,7 +3,7 @@ import { db, handleFirestoreError } from './firebase';
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { sheetsService } from './sheetsService';
 import { PortfolioItem, RateItem } from './types';
-import { Trash2, Edit3, Plus, LogOut, ArrowLeft, Image as ImageIcon, Video, Save, X, Settings as SettingsIcon, Key, DollarSign, ListPlus, User as UserIcon, Camera } from 'lucide-react';
+import { Trash2, Edit3, Plus, LogOut, ArrowLeft, Image as ImageIcon, Video, Save, X, Settings as SettingsIcon, Key, DollarSign, ListPlus, User as UserIcon, Camera, Play } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export default function AdminDashboard({ onBack, onRefresh }: { onBack: () => void, onRefresh?: () => void }) {
@@ -376,18 +376,43 @@ export default function AdminDashboard({ onBack, onRefresh }: { onBack: () => vo
                   </div>
                   <div className="space-y-6">
                     <div className="space-y-2">
-                        <label className="text-[10px] uppercase font-bold text-slate-500">Link Gambar (URL)</label>
+                        <label className="text-[10px] uppercase font-bold text-slate-500">Link Gambar / Thumbnail (URL)</label>
                         <input required placeholder="https://..." className="w-full bg-black/30 border border-white/10 p-3 rounded outline-none focus:border-accent" value={portfolioFormData.imageUrl} onChange={e => setPortfolioFormData({...portfolioFormData, imageUrl: e.target.value})} />
                         {portfolioFormData.imageUrl && (
                             <div className="mt-2 text-[9px] uppercase text-zinc-500 flex flex-col gap-2">
-                                <span>Preview:</span>
+                                <span>Preview Thumbnail:</span>
                                 <img src={portfolioFormData.imageUrl} className="w-full h-32 object-cover rounded border border-white/10" alt="Preview" referrerPolicy="no-referrer" />
                             </div>
                         )}
                     </div>
                     <div className="space-y-2">
-                        <label className="text-[10px] uppercase font-bold text-slate-500">Link Video (Opsional)</label>
-                        <input placeholder="https://..." className="w-full bg-black/30 border border-white/10 p-3 rounded outline-none focus:border-accent" value={portfolioFormData.videoUrl} onChange={e => setPortfolioFormData({...portfolioFormData, videoUrl: e.target.value})} />
+                        <label className="text-[10px] uppercase font-bold text-slate-500">Link Video YouTube (Opsional)</label>
+                        <input 
+                          placeholder="https://www.youtube.com/watch?v=... atau https://youtu.be/..." 
+                          className="w-full bg-black/30 border border-white/10 p-3 rounded outline-none focus:border-accent" 
+                          value={portfolioFormData.videoUrl} 
+                          onChange={e => setPortfolioFormData({...portfolioFormData, videoUrl: e.target.value})} 
+                        />
+                        <p className="text-[8px] text-slate-600 uppercase tracking-widest mt-1">Tempel link video YouTube untuk menampilkan tombol play di portfolio.</p>
+                        
+                        {portfolioFormData.videoUrl && (portfolioFormData.videoUrl.includes('youtube.com') || portfolioFormData.videoUrl.includes('youtu.be')) && (
+                          <div className="mt-4 p-4 bg-black/40 border border-white/5 rounded-xl">
+                            <div className="flex items-center gap-3 text-accent mb-3">
+                              <Video size={16} />
+                              <span className="text-[10px] font-bold uppercase tracking-widest">YouTube Detected</span>
+                            </div>
+                            <div className="aspect-video bg-black rounded-lg overflow-hidden border border-white/10">
+                              <iframe
+                                className="w-full h-full"
+                                src={`https://www.youtube.com/embed/${portfolioFormData.videoUrl.split('v=')[1]?.split('&')[0] || portfolioFormData.videoUrl.split('/').pop()}`}
+                                title="YouTube Preview"
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                              ></iframe>
+                            </div>
+                          </div>
+                        )}
                     </div>
                     <div className="flex justify-end gap-4 pt-4">
                         <button type="button" onClick={resetPortfolioForm} className="px-6 py-3 border border-white/10 text-[10px] uppercase tracking-widest font-bold">Batal</button>
@@ -405,6 +430,13 @@ export default function AdminDashboard({ onBack, onRefresh }: { onBack: () => vo
                 <div key={item.id} className="bg-zinc-900 border border-white/5 rounded-xl overflow-hidden group shadow-lg">
                   <div className="relative">
                     <img src={item.imageUrl} className="w-full h-48 object-cover opacity-60 group-hover:opacity-100 transition-all" referrerPolicy="no-referrer" />
+                    {item.videoUrl && (
+                      <div className="absolute top-3 left-1/2 -translate-x-1/2 pointer-events-none">
+                        <div className="w-8 h-8 bg-accent/80 backdrop-blur-md rounded-full flex items-center justify-center text-black shadow-lg">
+                          <Play size={16} fill="currentColor" />
+                        </div>
+                      </div>
+                    )}
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-3">
                       <button 
                         onClick={() => { setIsEditingPortfolio(item.id); setPortfolioFormData({ ...item, videoUrl: item.videoUrl || '', description: item.description || '' }); setShowPortfolioForm(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }} 
