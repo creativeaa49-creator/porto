@@ -50,6 +50,13 @@ export default function AdminDashboard({ onBack, onRefresh }: { onBack: () => vo
 
   const [showSettings, setShowSettings] = useState(false);
   const [newPin, setNewPin] = useState('');
+  
+  const getYoutubeId = (url: string) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|\/shorts\/)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && (match[2].length === 11 || match[2].length === 12)) ? match[2] : null;
+  };
 
   const fetchData = async () => {
     try {
@@ -404,7 +411,7 @@ export default function AdminDashboard({ onBack, onRefresh }: { onBack: () => vo
                             <div className="aspect-video bg-black rounded-lg overflow-hidden border border-white/10">
                               <iframe
                                 className="w-full h-full"
-                                src={`https://www.youtube.com/embed/${portfolioFormData.videoUrl.split('v=')[1]?.split('&')[0] || portfolioFormData.videoUrl.split('/').pop()}`}
+                                src={`https://www.youtube.com/embed/${getYoutubeId(portfolioFormData.videoUrl)}`}
                                 title="YouTube Preview"
                                 frameBorder="0"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

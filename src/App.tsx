@@ -89,12 +89,13 @@ export default function App() {
   const [storedPin, setStoredPin] = useState('1234');
   const [showPinInput, setShowPinInput] = useState(false);
   const [activeVideo, setActiveVideo] = useState<string | null>(null);
+  const [playingItemId, setPlayingItemId] = useState<string | null>(null);
 
   const getYoutubeId = (url: string) => {
     if (!url) return null;
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|\/shorts\/)([^#\&\?]*).*/;
     const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
+    return (match && (match[2].length === 11 || match[2].length === 12)) ? match[2] : null;
   };
 
   const heroYoutubeId = getYoutubeId(liveProfile.heroBgUrl);
@@ -518,7 +519,13 @@ export default function App() {
                   whileInView={{ opacity: 1, scale: 1 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.6, delay: index * 0.1 }}
-                  className="group relative h-[400px] md:h-[500px] bg-zinc-900 overflow-hidden"
+                  className={`group relative h-[400px] md:h-[500px] bg-zinc-900 overflow-hidden ${item.videoUrl ? 'cursor-pointer' : ''}`}
+                  onClick={() => {
+                    if (item.videoUrl && playingItemId !== item.id) {
+                      const ytId = getYoutubeId(item.videoUrl);
+                      if (ytId) setPlayingItemId(item.id);
+                    }
+                  }}
                 >
                   <img 
                     src={item.imageUrl} 
@@ -529,31 +536,46 @@ export default function App() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-80" />
                   <div className="absolute inset-0 bg-accent/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   
-                  {item.videoUrl && (
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 group-hover:bg-accent group-hover:text-black transition-all duration-500 z-20">
+                  {item.videoUrl && playingItemId !== item.id && (
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-accent text-black rounded-full flex items-center justify-center shadow-2xl scale-90 group-hover:scale-100 transition-all duration-500 z-40">
                       <Play size={24} fill="currentColor" className="ml-1" />
                     </div>
                   )}
 
-                  <button 
-                    onClick={() => {
-                      const ytId = getYoutubeId(item.videoUrl || '');
-                      if (ytId) setActiveVideo(ytId);
-                    }}
-                    className="absolute inset-0 z-30"
-                    aria-label={`View ${item.title}`}
-                  />
-                  
-                  <div className="absolute bottom-6 md:bottom-10 left-6 md:left-10 right-6 md:right-10 space-y-2 md:space-y-3 transform translate-y-2 md:translate-y-4 group-hover:translate-y-0 transition-transform duration-500 z-30 pointer-events-none">
-                    <div className="flex items-center gap-2">
-                      <span className="w-3 md:w-4 h-[1px] bg-accent"></span>
-                      <p className="text-[9px] md:text-[10px] uppercase tracking-widest font-bold text-accent">{item.type || item.category}</p>
+                  {playingItemId === item.id && item.videoUrl ? (
+                    <div className="absolute inset-0 z-50 bg-black">
+                      <iframe
+                        className="w-full h-full"
+                        src={`https://www.youtube.com/embed/${getYoutubeId(item.videoUrl)}?autoplay=1&rel=0&modestbranding=1`}
+                        title={item.title}
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      ></iframe>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPlayingItemId(null);
+                        }}
+                        className="absolute top-4 right-4 bg-black/60 text-white p-2 rounded-full hover:bg-accent hover:text-black transition-colors z-[60]"
+                      >
+                        <X size={20} />
+                      </button>
                     </div>
-                    <h3 className="text-xl md:text-2xl lg:text-3xl font-display font-bold text-white uppercase leading-tight">{item.title}</h3>
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-700 flex items-center gap-2 md:gap-3 text-[9px] md:text-[10px] font-bold uppercase tracking-widest pt-1 md:pt-2">
-                       View Case Study <ArrowUpRight size={12} md:size={14} />
-                    </div>
-                  </div>
+                  ) : (
+                    <>
+                      <div className="absolute bottom-6 md:bottom-10 left-6 md:left-10 right-6 md:right-10 space-y-2 md:space-y-3 transform translate-y-2 md:translate-y-4 group-hover:translate-y-0 transition-transform duration-500 z-30 pointer-events-none">
+                        <div className="flex items-center gap-2">
+                          <span className="w-3 md:w-4 h-[1px] bg-accent"></span>
+                          <p className="text-[9px] md:text-[10px] uppercase tracking-widest font-bold text-accent">{item.type || item.category}</p>
+                        </div>
+                        <h3 className="text-xl md:text-2xl lg:text-3xl font-display font-bold text-white uppercase leading-tight">{item.title}</h3>
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-700 flex items-center gap-2 md:gap-3 text-[9px] md:text-[10px] font-bold uppercase tracking-widest pt-1 md:pt-2">
+                           {item.videoUrl ? 'Watch Highlight' : 'View Project'} <ArrowUpRight size={12} md:size={14} />
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </motion.div>
               ))}
             </AnimatePresence>
