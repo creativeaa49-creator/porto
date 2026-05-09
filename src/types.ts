@@ -8,14 +8,6 @@ export interface PortfolioItem {
   description?: string;
 }
 
-export interface RateItem {
-  id: string;
-  title: string;
-  price: string;
-  features: string[];
-  category: 'photography' | 'videography';
-}
-
 export interface Profile {
   bio: string;
   experienceYear: number;

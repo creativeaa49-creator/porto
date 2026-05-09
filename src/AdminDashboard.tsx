@@ -2,15 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { db, handleFirestoreError } from './firebase';
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { sheetsService } from './sheetsService';
-import { PortfolioItem, RateItem } from './types';
+import { PortfolioItem } from './types';
 import { Trash2, Edit3, Plus, LogOut, ArrowLeft, Image as ImageIcon, Video, Save, X, Settings as SettingsIcon, Key, DollarSign, ListPlus, User as UserIcon, Camera, Play } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export default function AdminDashboard({ onBack, onRefresh }: { onBack: () => void, onRefresh?: () => void }) {
   const [items, setItems] = useState<PortfolioItem[]>([]);
-  const [rates, setRates] = useState<RateItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeView, setActiveView] = useState<'portfolio' | 'rates' | 'profile'>('portfolio');
+  const [activeView, setActiveView] = useState<'portfolio' | 'profile'>('portfolio');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -24,16 +23,6 @@ export default function AdminDashboard({ onBack, onRefresh }: { onBack: () => vo
     imageUrl: '',
     videoUrl: '',
     description: ''
-  });
-
-  // Rates Form State
-  const [isEditingRate, setIsEditingRate] = useState<string | null>(null);
-  const [showRateForm, setShowRateForm] = useState(false);
-  const [rateFormData, setRateFormData] = useState({
-    title: '',
-    price: '',
-    category: 'photography' as 'photography' | 'videography',
-    features: ['']
   });
 
   // Profile Form State
@@ -73,20 +62,6 @@ export default function AdminDashboard({ onBack, onRefresh }: { onBack: () => vo
           }));
           setItems(normalizedPortfolio);
           localStorage.setItem('portfolio_cache', JSON.stringify(normalizedPortfolio));
-        }
-        if (Array.isArray(allData.rates)) {
-          // Normalisasi rates: pastikan id string dan features array
-          const normalizedRates = allData.rates.map((rate: any, idx: number) => ({
-            ...rate,
-            id: rate.id ? String(rate.id).trim() : `rld-${idx}-${Math.random().toString(36).substr(2, 4)}`,
-            features: Array.isArray(rate.features) 
-              ? rate.features 
-              : (typeof rate.features === 'string' && rate.features 
-                  ? rate.features.split(',').map((f: string) => f.trim()).filter(Boolean) 
-                  : [])
-          }));
-          setRates(normalizedRates);
-          localStorage.setItem('rates_cache', JSON.stringify(normalizedRates));
         }
         
         // Handle Profile Data
@@ -157,29 +132,6 @@ export default function AdminDashboard({ onBack, onRefresh }: { onBack: () => vo
     }
   };
 
-  const handleRateSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isSaving) return;
-    try {
-      setIsSaving(true);
-      const cleanFeatures = rateFormData.features.filter(f => f.trim() !== '');
-      if (isEditingRate) {
-        await sheetsService.update('rates', isEditingRate, { ...rateFormData, features: cleanFeatures });
-        setIsEditingRate(null);
-      } else {
-        const id = Date.now().toString();
-        await sheetsService.create('rates', { ...rateFormData, features: cleanFeatures, id, order: rates.length });
-      }
-      resetRateForm();
-      alert("Harga berhasil disimpan!");
-      fetchData(); // Refresh data
-    } catch (error) { 
-      handleFirestoreError(error); 
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSaving) return;
@@ -233,12 +185,6 @@ export default function AdminDashboard({ onBack, onRefresh }: { onBack: () => vo
     setIsEditingPortfolio(null);
   };
 
-  const resetRateForm = () => {
-    setRateFormData({ title: '', price: '', category: 'photography', features: [''] });
-    setShowRateForm(false);
-    setIsEditingRate(null);
-  };
-
   const handleUpdatePin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPin.length < 4) { alert("PIN minimal 4 angka"); return; }
@@ -250,12 +196,12 @@ export default function AdminDashboard({ onBack, onRefresh }: { onBack: () => vo
     } catch (error) { handleFirestoreError(error); }
   };
 
-  const handleDelete = async (collectionName: 'portfolio' | 'rates', id: string) => {
+  const handleDelete = async (collectionName: 'portfolio', id: string) => {
     if (!id) {
       alert("ID item tidak valid. Tidak bisa menghapus.");
       return;
     }
-    const msg = collectionName === 'portfolio' ? 'karya' : 'harga';
+    const msg = 'karya';
     if (window.confirm(`Hapus ${msg} ini secara permanen?`)) {
       try { 
         setIsSaving(true);
@@ -265,11 +211,7 @@ export default function AdminDashboard({ onBack, onRefresh }: { onBack: () => vo
         await sheetsService.delete(collectionName, id); 
         
         // Optimistic UI Update: Langsung hapus dari state
-        if (collectionName === 'portfolio') {
-          setItems(prev => prev.filter(item => item.id !== id));
-        } else {
-          setRates(prev => prev.filter(rate => rate.id !== id));
-        }
+        setItems(prev => prev.filter(item => item.id !== id));
         
         alert(`${msg} berhasil dihapus! (Perubahan akan sinkron penuh dalam beberapa detik)`);
         
@@ -298,7 +240,6 @@ export default function AdminDashboard({ onBack, onRefresh }: { onBack: () => vo
           <div className="flex bg-zinc-900 rounded-lg p-1 border border-white/5 overflow-x-auto no-scrollbar">
             {[
               { id: 'portfolio', label: 'Karya' },
-              { id: 'rates', label: 'Harga' },
               { id: 'profile', label: 'Profil' }
             ].map(tab => (
               <button 
@@ -469,103 +410,6 @@ export default function AdminDashboard({ onBack, onRefresh }: { onBack: () => vo
                     <p className="text-[9px] uppercase text-zinc-500 font-bold mb-1">{item.type}</p>
                     <h4 className="font-bold text-white text-sm truncate">{item.title}</h4>
                   </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-
-        {activeView === 'rates' && (
-          <>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-              <h2 className="text-2xl md:text-3xl font-display font-medium text-white italic underline decoration-accent underline-offset-8">Kelola Harga</h2>
-              {!showRateForm && (
-                <button onClick={() => setShowRateForm(true)} className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-accent text-white text-[10px] uppercase font-bold tracking-widest hover:brightness-110 transition-all rounded">
-                  <Plus size={16} /> Tambah Harga
-                </button>
-              )}
-            </div>
-
-            {showRateForm && (
-              <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-12 p-6 md:p-8 bg-zinc-900/50 border border-white/10 rounded-xl shadow-2xl">
-                <div className="flex justify-between items-center mb-8">
-                  <h3 className="text-lg uppercase tracking-widest font-bold text-accent">{isEditingRate ? 'Edit Harga' : 'Tambah Harga Baru'}</h3>
-                  <button onClick={resetRateForm} className="text-slate-500 hover:text-white"><X size={20} /></button>
-                </div>
-                <form onSubmit={handleRateSubmit} className="space-y-8">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-2">
-                        <label className="text-[10px] uppercase font-bold text-slate-500">Nama Paket</label>
-                        <input required placeholder="Contoh: Paket High-End" className="w-full bg-black/30 border border-white/10 p-3 rounded outline-none focus:border-accent" value={rateFormData.title} onChange={e => setRateFormData({...rateFormData, title: e.target.value})} />
-                    </div>
-                    <div className="space-y-2">
-                        <label className="text-[10px] uppercase font-bold text-slate-500">Harga (Teks)</label>
-                        <input required placeholder="Contoh: IDR 2,500K" className="w-full bg-black/30 border border-white/10 p-3 rounded outline-none focus:border-accent" value={rateFormData.price} onChange={e => setRateFormData({...rateFormData, price: e.target.value})} />
-                    </div>
-                    <div className="space-y-2">
-                        <label className="text-[10px] uppercase font-bold text-slate-500">Kategori</label>
-                        <select className="w-full bg-black/30 border border-white/10 p-3 rounded outline-none focus:border-accent" value={rateFormData.category} onChange={e => setRateFormData({...rateFormData, category: e.target.value as any})}>
-                        <option value="photography">Photography</option>
-                        <option value="videography">Videography</option>
-                        </select>
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <label className="text-[10px] uppercase font-bold text-slate-500 flex items-center gap-2"><ListPlus size={14} /> Daftar Fitur & Layanan</label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm leading-relaxed text-slate-400">
-                    {(Array.isArray(rateFormData.features) ? rateFormData.features : []).map((feature, idx) => (
-                      <div key={idx} className="flex gap-2">
-                        <input placeholder={`Fitur ${idx + 1}`} className="flex-1 bg-black/30 border border-white/10 p-2 rounded outline-none text-sm" value={feature} onChange={e => {
-                          const newFeatures = [...rateFormData.features];
-                          newFeatures[idx] = e.target.value;
-                          setRateFormData({...rateFormData, features: newFeatures});
-                        }} />
-                        <button type="button" onClick={() => setRateFormData({...rateFormData, features: rateFormData.features.filter((_, i) => i !== idx)})} className="p-2 text-slate-600 hover:text-red-500"><X size={16} /></button>
-                      </div>
-                    ))}
-                    </div>
-                    <button type="button" onClick={() => setRateFormData({...rateFormData, features: [...rateFormData.features, '']})} className="text-[9px] uppercase font-bold text-accent hover:underline">+ Tambah Fitur</button>
-                  </div>
-                  <div className="flex justify-end gap-4">
-                    <button type="button" onClick={resetRateForm} className="px-6 py-3 border border-white/10 text-[10px] uppercase tracking-widest font-bold">Batal</button>
-                    <button type="submit" disabled={isSaving} className={`px-12 py-3 bg-accent text-black font-bold text-[10px] uppercase tracking-widest ${isSaving ? 'opacity-50 cursor-not-allowed' : 'hover:brightness-110 transition-all'}`}>
-                      {isSaving ? 'Memproses...' : (isEditingRate ? 'Simpan Perubahan' : 'Tambah Harga')}
-                    </button>
-                  </div>
-                </form>
-              </motion.div>
-            )}
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {(Array.isArray(rates) ? rates : []).map(rate => (
-                <div key={rate.id} className="p-8 bg-white/5 border border-white/10 rounded-xl relative group hover:border-accent/30 transition-all shadow-lg">
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-3 z-10">
-                    <button 
-                        onClick={() => { setIsEditingRate(rate.id); setRateFormData(rate); setShowRateForm(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }} 
-                        className="p-3 bg-accent text-black rounded-full hover:scale-110 transition-transform shadow-xl"
-                        title="Edit Harga"
-                    >
-                        <Edit3 size={18} />
-                    </button>
-                    <button 
-                        onClick={() => handleDelete('rates', rate.id)} 
-                        disabled={isSaving}
-                        className={`p-3 bg-red-600 text-white rounded-full hover:scale-110 transition-transform shadow-xl ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        title="Hapus Harga"
-                    >
-                        <Trash2 size={18} />
-                    </button>
-                  </div>
-                  <p className="text-[9px] uppercase text-accent font-bold mb-1">{rate.category}</p>
-                  <h3 className="text-xl font-bold text-white uppercase">{rate.title}</h3>
-                  <p className="text-xl font-mono text-white/40 mb-4">{rate.price}</p>
-                  <ul className="space-y-2">
-                    {(Array.isArray(rate.features) ? rate.features : []).map((f, idx) => (
-                      <li key={idx} className="text-[10px] text-zinc-500 flex items-center gap-2">
-                        <span className="w-1 h-1 bg-accent rounded-full" /> {f}
-                      </li>
-                    ))}
-                  </ul>
                 </div>
               ))}
             </div>

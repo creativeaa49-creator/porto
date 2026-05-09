@@ -26,8 +26,8 @@ import {
   Play,
   ChevronDown
 } from 'lucide-react';
-import { portfolioData, rateCardData } from './data';
-import { PortfolioItem, RateItem } from './types';
+import { portfolioData } from './data';
+import { PortfolioItem } from './types';
 import { db, handleFirestoreError } from './firebase';
 import { sheetsService } from './sheetsService';
 import { collection, onSnapshot, query, orderBy, getDoc, doc } from 'firebase/firestore';
@@ -45,15 +45,6 @@ export default function App() {
       return Array.isArray(parsed) ? parsed : portfolioData;
     } catch {
       return portfolioData;
-    }
-  });
-  const [liveRates, setLiveRates] = useState<RateItem[]>(() => {
-    try {
-      const cached = localStorage.getItem('rates_cache');
-      const parsed = cached ? JSON.parse(cached) : null;
-      return Array.isArray(parsed) ? parsed : rateCardData;
-    } catch {
-      return rateCardData;
     }
   });
   const [liveProfile, setLiveProfile] = useState(() => {
@@ -113,19 +104,6 @@ export default function App() {
           }));
           setLivePortfolio(normalizedPortfolio);
           localStorage.setItem('portfolio_cache', JSON.stringify(normalizedPortfolio));
-        }
-        if (Array.isArray(allData.rates)) {
-          const normalizedRates = allData.rates.map((rate: any, idx: number) => ({
-            ...rate,
-            id: rate.id ? String(rate.id).trim() : `rld-${idx}-${Math.random().toString(36).substr(2, 4)}`,
-            features: Array.isArray(rate.features) 
-              ? rate.features 
-              : (typeof rate.features === 'string' && rate.features 
-                  ? rate.features.split(',').map((f: string) => f.trim()).filter(Boolean) 
-                  : [])
-          }));
-          setLiveRates(normalizedRates);
-          localStorage.setItem('rates_cache', JSON.stringify(normalizedRates));
         }
         if (allData.profile && Array.isArray(allData.profile) && allData.profile.length > 0) {
           const rawProfile = allData.profile[0];
@@ -295,7 +273,6 @@ export default function App() {
           <a href="#" className="text-accent relative after:absolute after:-bottom-2 after:left-0 after:w-full after:h-0.5 after:bg-accent nav-link">Home</a>
           <a href="#about" className="nav-link">About</a>
           <a href="#work" className="nav-link">Our Portfolio</a>
-          <a href="#rates" className="nav-link">Pricing</a>
           <a href="#blog" className="nav-link">Blog</a>
           <a href="#contact" className="nav-link">Contact</a>
         </div>
@@ -331,7 +308,6 @@ export default function App() {
             <a href="#" onClick={() => setIsMenuOpen(false)} className="text-accent">Home</a>
             <a href="#about" onClick={() => setIsMenuOpen(false)}>About</a>
             <a href="#work" onClick={() => setIsMenuOpen(false)}>Our Portfolio</a>
-            <a href="#rates" onClick={() => setIsMenuOpen(false)}>Pricing</a>
             <a href="#contact" onClick={() => setIsMenuOpen(false)}>Contact</a>
           </motion.div>
         )}
@@ -546,7 +522,7 @@ export default function App() {
                     <div className="absolute inset-0 z-50 bg-black">
                       <iframe
                         className="w-full h-full"
-                        src={`https://www.youtube.com/embed/${getYoutubeId(item.videoUrl)}?autoplay=1&rel=0&modestbranding=1`}
+                        src={`https://www.youtube.com/embed/${getYoutubeId(item.videoUrl)}?autoplay=1&rel=0&modestbranding=1&loop=1&playlist=${getYoutubeId(item.videoUrl)}`}
                         title={item.title}
                         frameBorder="0"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -579,65 +555,6 @@ export default function App() {
                 </motion.div>
               ))}
             </AnimatePresence>
-          </div>
-        </section>
-
-        {/* Rates Section */}
-        <section id="rates" className="py-20 md:py-32 px-6 md:px-12 lg:px-24 bg-zinc-900/40">
-          <div className="max-w-7xl mx-auto space-y-12 md:space-y-20">
-            <div className="text-center space-y-4 md:space-y-6">
-              <div className="flex items-center justify-center gap-2 md:gap-3">
-                <span className="w-6 md:w-8 h-[1px] bg-accent"></span>
-                <span className="text-accent text-[9px] md:text-[11px] font-bold uppercase tracking-[0.3em] md:tracking-[0.4em]">Pricing Plan</span>
-                <span className="w-6 md:w-8 h-[1px] bg-accent"></span>
-              </div>
-              <h2 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-bold text-white uppercase tracking-tighter">Budget-Friendly Quotes</h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0 border border-white/10 rounded-xl overflow-hidden">
-              {liveRates.map((rate, index) => (
-                <div key={rate.id} className={`p-8 sm:p-12 lg:p-16 space-y-8 md:space-y-12 transition-all duration-500 hover:bg-zinc-800/50 ${index !== liveRates.length - 1 ? 'border-b lg:border-b-0 lg:border-r border-white/10' : ''} ${index === 1 ? 'bg-zinc-900 shadow-2xl z-10' : ''}`}>
-                  <div className="space-y-3 md:space-y-4">
-                    <p className="text-accent text-[9px] md:text-[10px] font-bold uppercase tracking-[0.3em]">{rate.category}</p>
-                    <h3 className="text-2xl md:text-3xl font-display font-bold text-white uppercase tracking-tight">{rate.title}</h3>
-                  </div>
-                  
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-3xl md:text-4xl font-display font-bold text-white">{rate.price}</span>
-                    <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest">/ Session</span>
-                  </div>
-
-                  <ul className="space-y-4 md:space-y-5 text-zinc-400 text-[10px] md:text-[11px] font-medium uppercase tracking-widest leading-none">
-                    {(Array.isArray(rate.features) ? rate.features : []).map((f, i) => (
-                      <li key={i} className="flex items-start gap-3">
-                        <ArrowUpRight size={14} className="text-accent shrink-0 mt-[-2px]" />
-                        <span className="flex-1">{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <div className="pt-2 md:pt-4">
-                    <a 
-                      href="https://order-form-gamma-fawn.vercel.app/#" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="w-full py-4 bg-accent/10 border border-accent/20 text-accent text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] rounded flex items-center justify-center gap-2 hover:bg-accent hover:text-black transition-all duration-300"
-                    >
-                      Pesan Sekarang <ArrowUpRight size={14} />
-                    </a>
-                  </div>
-
-                  <a 
-                    href={`https://wa.me/6285718597608?text=Halo%20Cinenyo%2C%20saya%20tertarik%20dengan%20paket%20${encodeURIComponent(rate.title)}.`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group flex items-center gap-4 text-[10px] md:text-[11px] font-bold uppercase tracking-[0.3em] text-white hover:text-accent transition-colors pt-4 md:pt-8"
-                  >
-                    Choose Plan <X size={12} className="rotate-45 group-hover:rotate-90 transition-transform" />
-                  </a>
-                </div>
-              ))}
-            </div>
           </div>
         </section>
 
@@ -684,7 +601,6 @@ export default function App() {
             <a href="#" className="hover:text-white transition-colors">Home</a>
             <a href="#about" className="hover:text-white transition-colors">About</a>
             <a href="#work" className="hover:text-white transition-colors">Portfolio</a>
-            <a href="#rates" className="hover:text-white transition-colors">Pricing</a>
             <a href="#blog" className="hover:text-white transition-colors">Blog</a>
             <a href="#contact" className="hover:text-white transition-colors">Contact</a>
           </div>
@@ -716,7 +632,7 @@ export default function App() {
             <div className="w-full max-w-6xl aspect-video bg-black shadow-2xl rounded-2xl overflow-hidden border border-white/10">
               <iframe
                 className="w-full h-full"
-                src={`https://www.youtube.com/embed/${activeVideo}?autoplay=1`}
+                src={`https://www.youtube.com/embed/${activeVideo}?autoplay=1&loop=1&playlist=${activeVideo}`}
                 title="Video Showcase"
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"

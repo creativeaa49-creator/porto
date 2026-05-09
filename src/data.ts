@@ -1,4 +1,4 @@
-import { PortfolioItem, RateItem } from './types';
+import { PortfolioItem } from './types';
 
 export const portfolioData: PortfolioItem[] = [
   {
@@ -51,36 +51,5 @@ export const portfolioData: PortfolioItem[] = [
     imageUrl: 'https://picsum.photos/seed/corp/1600/900',
     videoUrl: '#',
     description: 'Elevating brands through visual storytelling.'
-  }
-];
-
-export const rateCardData: RateItem[] = [
-  {
-    id: 'p1',
-    title: 'Basic Portrait',
-    price: 'IDR 1,500K',
-    category: 'photography',
-    features: ['1 Hour Session', '10 Edited Photos', '1 Location', 'Online Gallery']
-  },
-  {
-    id: 'p2',
-    title: 'Commercial Brand',
-    price: 'IDR 4,500K',
-    category: 'photography',
-    features: ['4 Hour Session', '30 Edited Photos', 'Product & Interior', 'High-Res Delivery']
-  },
-  {
-    id: 'v1',
-    title: 'Social Media Edit',
-    price: 'IDR 2,500K',
-    category: 'videography',
-    features: ['15-30s Reels', 'Vertical Format', 'Motion Graphics', 'Trendy Audio']
-  },
-  {
-    id: 'v2',
-    title: 'Cinematic Highlight',
-    price: 'IDR 7,500K',
-    category: 'videography',
-    features: ['3-5 Min Video', '4K Quality', 'Color Grading', 'Sound Design']
   }
 ];
