@@ -558,6 +558,44 @@ export default function App() {
           </div>
         </section>
 
+        {/* Blog Section */}
+        <section id="blog" className="py-24 md:py-40 px-6 sm:px-12 md:px-24 bg-zinc-900/20 border-y border-white/5">
+          <div className="max-w-4xl mx-auto space-y-12 text-center">
+            <div className="flex items-center justify-center gap-3">
+              <span className="w-8 h-[1px] bg-accent"></span>
+              <span className="text-accent text-[10px] md:text-[12px] font-bold uppercase tracking-[0.4em]">Creative Journal</span>
+              <span className="w-8 h-[1px] bg-accent"></span>
+            </div>
+            
+            <div className="space-y-8">
+              <h2 className="text-4xl md:text-6xl lg:text-7xl font-display font-bold text-white uppercase tracking-tighter leading-tight">
+                Cinenyo <span className="text-accent">Production</span>
+              </h2>
+              
+              <div className="space-y-6 md:space-y-8">
+                <p className="text-zinc-300 text-lg md:text-2xl font-medium leading-relaxed italic font-serif">
+                  "Cinenyo Production adalah platform kreatif yang berfokus pada videografi, fotografi, dan visual storytelling. Mengangkat nuansa sinematik, budaya lokal, human interest, serta kreativitas visual modern, Cinenyo Production hadir untuk menciptakan karya yang memiliki cerita, emosi, dan identitas kuat."
+                </p>
+                <div className="w-12 h-[1px] bg-white/20 mx-auto"></div>
+                <p className="text-zinc-500 text-sm md:text-base leading-relaxed tracking-wide max-w-2xl mx-auto uppercase font-bold tracking-[0.2em]">
+                  Mulai dari dokumenter, cinematic video, hingga eksplorasi visual berbasis teknologi dan seni, setiap karya dibuat dengan pendekatan kreatif dan detail visual yang kuat.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-8 flex justify-center">
+               <motion.div 
+                 animate={{ y: [0, 10, 0] }}
+                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                 className="flex flex-col items-center gap-4 text-accent/40"
+               >
+                 <span className="text-[10px] uppercase font-bold tracking-[0.3em]">Cinematic Exploration</span>
+                 <ChevronDown size={20} />
+               </motion.div>
+            </div>
+          </div>
+        </section>
+
         {/* Contact Mini */}
         <section id="contact" className="py-24 md:py-40 px-6 sm:px-12 md:px-24">
           <div className="max-w-5xl mx-auto text-center space-y-8 md:space-y-12">
